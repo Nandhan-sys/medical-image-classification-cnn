@@ -1,0 +1,45 @@
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_meta
+
+# Virtual environments
+venv/
+env/
+.venv/
+ENV/
+
+# Model weights / checkpoints
+*.pth
+*.pt
+*.ckpt
+*.h5
+
+# Dataset / downloaded data
+data/
+datasets/
+*.zip
+*.tar
+*.tar.gz
+
+# Kaggle
+kaggle.json
+.kaggle/
+
+# Logs
+*.log
+runs/
+lightning_logs/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Environment variables
+.env
