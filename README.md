@@ -1,158 +1,79 @@
-Medical Image Classification using CNN
+# Medical Image CNN — Pneumonia Detection from Chest X-Rays
 
-A deep learning project using PyTorch to classify chest X-ray images into two classes:
+A PyTorch project that trains a custom convolutional neural network to classify chest X-ray images as **NORMAL** or **PNEUMONIA**, using the [Chest X-Ray Images (Pneumonia)](https://www.kaggle.com/datasets/paultimothymooney/chest-xray-pneumonia) dataset from Kaggle.
 
-NORMAL
+## Overview
 
-PNEUMONIA
+The notebook builds two versions of the same CNN architecture and compares them:
 
-Project Overview
+- **Experiment A — Plain CNN**: trained with standard cross-entropy loss.
+- **Experiment B — Weighted CNN**: trained with class-weighted cross-entropy loss to counter class imbalance (the dataset has roughly 3x more PNEUMONIA images than NORMAL in training).
 
-The goal of this project is to build a Convolutional Neural Network (CNN) that can classify chest X-ray images as NORMAL or PNEUMONIA.
+Both models are evaluated on a held-out validation set, and the final model is evaluated once on a locked test set that is never touched during training or tuning.
 
-Technologies
+## Dataset
 
-Python
+Downloaded automatically via `kagglehub`:
 
-PyTorch
+```
+kagglehub.dataset_download("paultimothymooney/chest-xray-pneumonia")
+```
 
-Torchvision
+| Split | NORMAL | PNEUMONIA | Total |
+|---|---|---|---|
+| Train (original) | 1,341 | 3,875 | 5,216 |
+| Val (original) | 8 | 8 | 16 |
+| Test (locked) | 234 | 390 | 624 |
 
-Scikit-learn
+The original validation split (16 images) is too small to be reliable, so it's discarded. Instead, the notebook creates a new **stratified 90/10 split** of the training data (train/val), preserving the NORMAL:PNEUMONIA ratio. The original test set of 624 images stays locked and untouched until final evaluation.
 
-Matplotlib
+## Pipeline
 
-Seaborn
+1. **Setup** — fixed random seed (42) for reproducibility; GPU detection.
+2. **Download dataset** via `kagglehub`.
+3. **Explore raw folders** to confirm class counts per split.
+4. **Transforms** — resize to 224x224, normalize with ImageNet mean/std; training set also gets random horizontal flip augmentation.
+5. **Stratified re-split** — training folder is loaded twice (once augmented, once clean), then split 90/10 by index using `sklearn.train_test_split` with `stratify`, so the new validation set uses un-augmented images.
+6. **DataLoaders** — batch size 32.
+7. **Data sanity check** — visualize a sample image.
+8. **Model** — a small custom CNN:
+   - Conv2d(3→10, 3x3) → ReLU → MaxPool(2x2)
+   - Conv2d(10→20, 3x3) → ReLU
+   - Flatten → Linear(250880→2)
+9. **Class weights** — recomputed from the new train split (not the original) to correctly counter imbalance.
+10. **Training/evaluation utilities** — shared `train_model()` and `evaluate()` functions used by both experiments, plus a `metrics_report()` helper that prints accuracy/precision/recall/F1 and plots a confusion matrix heatmap.
+11. **Experiment A** — plain CNN, 3 epochs, Adam (lr=0.001), unweighted `CrossEntropyLoss`.
+12. **Experiment B** — same architecture and hyperparameters, but `CrossEntropyLoss` weighted by class frequency.
+13. **Model checkpoints** — both models saved as `cnn_plain.pth` and `cnn_weighted.pth`.
+14. **Final locked-test-set evaluation** — the plain CNN is evaluated once on the untouched 624-image test set.
 
-Google Colab
+## Requirements
 
-CUDA / Tesla T4 GPU
+```
+torch
+torchvision
+numpy
+scikit-learn
+matplotlib
+seaborn
+kagglehub
+```
 
-Dataset
+## Usage
 
-Dataset: Chest X-Ray Pneumonia dataset from Kaggle.
+1. Install dependencies:
+   ```bash
+   pip install torch torchvision numpy scikit-learn matplotlib seaborn kagglehub
+   ```
+2. Open and run `Medical_Image_CNN_v3.ipynb` top to bottom in Jupyter, VS Code, or Google Colab.
+3. The dataset downloads automatically on first run via `kagglehub` (a Kaggle account/API token may be required).
+4. Trained weights are saved to `cnn_plain.pth` and `cnn_weighted.pth` in the working directory.
 
-The dataset contains chest X-ray images organized into NORMAL and PNEUMONIA classes.
+## Notes
 
-A stratified 90/10 split was created from the original training data to obtain a larger validation set.
+- Results are seeded (`seed=42`) for reproducibility across runs.
+- The locked test set is only used for a final, single evaluation pass to avoid test-set leakage during model iteration.
 
-The original test set was kept separate and used only for the final evaluation.
+## Disclaimer
 
-Data Preprocessing
-
-Training images:
-
-Resize → Random Horizontal Flip → ToTensor → Normalize
-
-Validation and test images:
-
-Resize → ToTensor → Normalize
-
-Images were resized to 224 × 224 pixels.
-
-Model
-
-A custom CNN was built using PyTorch.
-
-Architecture:
-
-Input Image
-    ↓
-Conv2D (3 → 10)
-    ↓
-ReLU
-    ↓
-MaxPooling
-    ↓
-Conv2D (10 → 20)
-    ↓
-ReLU
-    ↓
-Flatten
-    ↓
-Fully Connected Layer
-    ↓
-2 Classes
-
-
-Output classes:
-
-0 → NORMAL
-1 → PNEUMONIA
-
-Class Imbalance
-
-The training dataset contained more PNEUMONIA images than NORMAL images.
-
-To study the effect of class imbalance, two CNN experiments were performed:
-
-CNN without class weights
-
-CNN with weighted CrossEntropyLoss
-
-Validation Results
-Model	Accuracy	Precision	Recall	F1
-CNN without weights	97.32%	98.20%	98.20%	98.20%
-Weighted CNN	96.55%	97.93%	97.42%	97.67%
-
-The unweighted CNN performed better on this validation split, while the weighted model was useful for studying the effect of class imbalance.
-
-Final Test Results
-
-The final unweighted CNN was evaluated on the locked test set.
-
-Metric	Result
-Accuracy	72.76%
-Precision	69.86%
-Recall	99.23%
-F1-score	81.99%
-Confusion Matrix
-                 Predicted
-              NORMAL  PNEUMONIA
-
-Actual NORMAL    67       167
-Actual PNEUMONIA  3       387
-
-
-The model detected most PNEUMONIA cases, but it also incorrectly classified a number of NORMAL images as PNEUMONIA.
-
-Learning Outcomes
-
-Through this project, I learned:
-
-Image preprocessing using PyTorch
-
-PyTorch Dataset and DataLoader
-
-Building a CNN using nn.Module
-
-Forward propagation
-
-CrossEntropyLoss
-
-Adam optimizer
-
-Backpropagation
-
-Training and evaluation modes
-
-Handling class imbalance with class weights
-
-Confusion matrix
-
-Accuracy, precision, recall and F1-score
-
-GPU training using CUDA
-
-Limitations
-
-This project is an educational deep learning project and is not intended for clinical diagnosis.
-
-The test results also show that the model produces a relatively high number of false-positive PNEUMONIA predictions.
-
-Project Structure
-medical-image-classification-cnn/
-│
-├── Medical_Image_Classification.ipynb
-├── README.md
-└── .gitignore
+This project is for educational/experimental purposes only and is **not** a validated diagnostic tool. It should not be used for real clinical decision-making.
